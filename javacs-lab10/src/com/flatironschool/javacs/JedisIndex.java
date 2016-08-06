@@ -67,8 +67,7 @@ public class JedisIndex {
 	 * @return Set of URLs.
 	 */
 	public Set<String> getURLs(String term) {
-        // FILL THIS IN!
-		return null;
+		return jedis.hkeys(urlSetKey(term));
 	}
 
     /**
@@ -78,8 +77,14 @@ public class JedisIndex {
 	 * @return Map from URL to count.
 	 */
 	public Map<String, Integer> getCounts(String term) {
-        // FILL THIS IN!
-		return null;
+        Map<String, Integer> map = new HashMap<String, Integer>();
+        Set<String> AllURLs = getURLs(term);
+        
+        for (String url : AllURLs) {
+        	map.put(url, getCount(url, term));
+        }
+		
+        return map;
 	}
 
     /**
@@ -91,7 +96,12 @@ public class JedisIndex {
 	 */
 	public Integer getCount(String url, String term) {
         // FILL THIS IN!
-		return null;
+		if (jedis.hget(termCounterKey(url), term).isEmpty()){
+			return 0;
+		}
+		else {
+			return Integer.parseInt(jedis.hget(termCounterKey(url), term));
+		}
 	}
 
 
@@ -102,7 +112,25 @@ public class JedisIndex {
 	 * @param paragraphs  Collection of elements that should be indexed.
 	 */
 	public void indexPage(String url, Elements paragraphs) {
-        // FILL THIS IN!
+		// make a TermCounter and count the terms in the paragraphs
+		TermCounter tc = new TermCounter(url);
+		tc.processElements(paragraphs);
+		
+		// for each term in the TermCounter, add the TermCounter to the index
+		for (String term: tc.keySet()) {
+			if (term.length() > 0) {
+				String urlKey = urlSetKey(term);
+				String termCountKey = termCounterKey(url);
+				String i = Integer.toString(tc.get(term));
+				
+				if(term.equals("the")){
+					System.out.println();
+				}
+				
+				jedis.hset(urlKey, url, i);
+				jedis.hset(termCountKey, term, i);
+			}
+		}
 	}
 
 	/**
